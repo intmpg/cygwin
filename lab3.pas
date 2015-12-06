@@ -8,7 +8,7 @@
          END;
 VAR
   t, kon, root, p: ukaz;
-  i, k, m, Len, PosSpace, LeafWeight, err, Limiter: INTEGER;
+  k, m, Len, PosSpace, LeafWeight, err, Limiter: INTEGER;
   S, R, STypeUzel, NameInputFile, NameOutFile: STRING;
   Fin, Fout: TEXT;
   
@@ -116,6 +116,78 @@ BEGIN
       truncationTree(t^.right);
     END; 
 END;
+PROCEDURE ReadInputFile();
+VAR i:INTEGER;
+BEGIN
+  WHILE NOT Eof(Fin) 
+  DO
+  BEGIN
+    READLN(Fin, S);
+    k:= 0;
+    NEW(kon);
+    Len:= LENGTH(S);
+    BEGIN
+      PosSpace:= POS(' ', S);
+      STypeUzel:= S;
+      DELETE(S, PosSpace, Len-PosSpace+1);
+      DELETE(STypeUzel, 1, PosSpace);
+      IF ((STypeUzel = 'and') OR (STypeUzel = 'or'))
+      THEN
+      BEGIN
+        kon^.TypeUzel:= STypeUzel;
+        kon^.WeightUzelMin:= 0;
+        kon^.WeightUzelMax:= 0;
+      END
+      ELSE
+      BEGIN
+        kon^.TypeUzel:= 'leaf';
+        Val(STypeUzel, LeafWeight, err);
+        kon^.WeightUzelMin:= LeafWeight;
+        kon^.WeightUzelMax:= LeafWeight;
+      END;
+    END;    
+    WHILE S[k + 1]= '.' 
+    DO 
+      k:= k + 1;
+    R:= COPY(S, k + 1 ,Len - k);        
+    kon^.name:= R;
+    kon^.left:= nil;
+    kon^.right:= nil;
+    kon^.urov:= k;
+    kon^.limit:= 0;
+    IF k > m 
+    THEN
+    BEGIN
+      t^.left:= kon;
+      kon^.fath:= t;
+      kon^.Flag:= TRUE;      
+    END
+    ELSE
+    IF (k = m) 
+    THEN
+    BEGIN
+      t^.right:=kon;
+      kon^.fath:=t^.fath; 
+      t^.Flag:= FALSE;     
+      kon^.Flag:= TRUE;   
+    END
+    ELSE                   
+    BEGIN
+      p:= t;
+      FOR i:= 1 TO m - k 
+      DO
+      BEGIN
+        p:=p^.fath;
+      END;
+      kon^.fath:= p^.fath;
+      p^.right:= kon;
+      p^.Flag:= FALSE;    
+      kon^.Flag:= TRUE;   
+    END;
+    m:= k;     
+    t:= kon;    
+  END;          
+END;
 PROCEDURE PechPr(t:ukaz);  
 Var
   j: integer;
@@ -200,72 +272,7 @@ BEGIN
   root^.fath:= nil; 
   m:= 0;             
   t:= root;          
-  WHILE NOT Eof(Fin) 
-  DO
-  BEGIN
-    READLN(Fin, S);
-    k:= 0;
-    New(kon);
-    Len:= Length(S);
-      BEGIN
-        PosSpace:= POS(' ', S);
-        STypeUzel:= S;
-        DELETE(S, PosSpace, Len - PosSpace + 1);
-        DELETE(STypeUzel, 1, PosSpace);
-        IF ((STypeUzel = 'and') OR (STypeUzel = 'or'))
-        THEN
-        BEGIN
-          kon^.TypeUzel:= STypeUzel;
-          kon^.WeightUzelMin:= 0;
-          kon^.WeightUzelMax:= 0;
-        END
-        ELSE
-        BEGIN
-          kon^.TypeUzel:= 'leaf';
-          Val(STypeUzel, LeafWeight, err);
-          kon^.WeightUzelMin:= LeafWeight;
-          kon^.WeightUzelMax:= LeafWeight;
-        END;
-      END;     
-      REPEAT 
-        k:= k + 1;
-      UNTIL S[k] = '.';
-      R:= COPY(S, k + 1, Len - k);
-      kon^.name:= R;
-      kon^.left:= nil;
-      kon^.right:= nil;
-      kon^.urov:= k;
-      kon^.limit:= 0;
-      IF k > m 
-      THEN
-      BEGIN
-        t^.left:= kon;
-        kon^.fath:= t;
-        kon^.Flag:= TRUE;      
-      END
-      ELSE
-      IF k = m 
-      THEN
-      BEGIN
-        t^.right:= kon;
-        kon^.fath:= t^.fath; 
-        t^.Flag:= FALSE;     
-        kon^.Flag:= TRUE;   
-      END
-      ELSE                    
-      BEGIN
-        p:=t;
-        FOR i:= 1 to m - k 
-        DO
-          p:= p^.fath;
-        kon^.fath:= p^.fath;
-        p^.right:= kon;
-        p^.Flag:= FALSE;    
-        kon^.Flag:= TRUE;   
-      END;
-      m:= k;     
-      t:= kon;    
-    END;          
+    ReadInputFile;
     CLOSE(Fin);
     REWRITE(Fout);
     calcWeightVertex(root);
