@@ -1,75 +1,75 @@
 ﻿TYPE
-  ukaz = ^uzel;
-  uzel = RECORD
-         name, TypeUzel: STRING;    
-         left, right, fath: ukaz; 
-         urov, WeightUzelMin, WeightUzelMax, limit: INTEGER;  
-         Flag, zapret: BOOLEAN;  
+  Pointer = ^Node;
+  Node = RECORD
+         name, N_Type: STRING;    
+         left, right, fath: Pointer; 
+         urov, MinVes, MaxVes, limit: INTEGER;  
+         Flag, Flag2: BOOLEAN;  
          END;
 VAR
-  t, kon, root, p: ukaz;
-  k, m, Len, PosSpace, LeafWeight, err, Limiter: INTEGER;
-  S, R, STypeUzel, NameInputFile, NameOutFile: STRING;
-  Fin, Fout: TEXT;
+  kon, key, t, p: Pointer;
+  Value, VesV, Ending, k, m, Len, Limiter: INTEGER;
+  S, R, NodeType: STRING;
+  input_file, output_file: TEXT;
   
-PROCEDURE calcWeightVertex(t:ukaz);  
+PROCEDURE Vershin(t:Pointer);  
 VAR
   min, max: integer;
 BEGIN
   IF NOT (t = nil)
   THEN
     BEGIN
-      calcWeightVertex(t^.left);
-      calcWeightVertex(t^.right);
+      Vershin(t^.left);
+      Vershin(t^.right);
       IF NOT (t^.left = nil)
       THEN 
-        IF (t^.TypeUzel = 'and')
+        IF (t^.N_Type = 'and')
         THEN
           BEGIN
             kon:= t^.left;
             REPEAT
-              t^.WeightUzelMax:= t^.WeightUzelMax + kon^.WeightUzelMax;
-              t^.WeightUzelMin:= t^.WeightUzelMin + kon^.WeightUzelMin;
+              t^.MaxVes:= t^.MaxVes + kon^.MaxVes;
+              t^.MinVes:= t^.MinVes + kon^.MinVes;
               kon:= kon^.right
             UNTIL kon = nil
           END
         ELSE 
-          IF t^.TypeUzel = 'or' 
+          IF t^.N_Type = 'or' 
           THEN
           BEGIN
-            t^.WeightUzelMin:= 0;
-            t^.WeightUzelMax:= 0;
+            t^.MinVes:= 0;
+            t^.MaxVes:= 0;
             kon:= t^.left;
             min:= 65000;  // сортировка
             max:= -1; 
             REPEAT 
-              IF kon^.WeightUzelMin<min
+              IF kon^.MinVes<min
               THEN
               BEGIN
-                min:= kon^.WeightUzelMin;
+                min:= kon^.MinVes;
               END;
-              IF kon^.WeightUzelMax>max
+              IF kon^.MaxVes>max
               THEN
               BEGIN
-                max:= kon^.WeightUzelMax;
+                max:= kon^.MaxVes;
               END;
                 kon:= kon^.right  
             UNTIL kon = nil;
-            t^.WeightUzelMin:= min;
-            t^.WeightUzelMax:= max;
+            t^.MinVes:= min;
+            t^.MaxVes:= max;
           END;
     END
 END;
 
-PROCEDURE truncationTree(t:ukaz);
+PROCEDURE multiplications(t:Pointer);
 VAR
-  temp: ukaz;
+  temp: Pointer;
   sumMin: integer;
 BEGIN
   IF NOT (t = nil)
   THEN
   BEGIN
-    IF (t^.TypeUzel = 'and')
+    IF (t^.N_Type = 'and')
     THEN
     BEGIN
       temp:= t^.left;
@@ -77,18 +77,18 @@ BEGIN
       WHILE temp <> nil
       DO
         BEGIN
-          sumMin:= sumMin + temp^.WeightUzelMin;
+          sumMin:= sumMin + temp^.MinVes;
           temp:= temp^.right;
         END;
       temp:= t^.left;
       WHILE temp <> nil
       DO
         BEGIN
-          temp^.limit:= t^.limit - ( sumMin - temp^.WeightUzelMin );
+          temp^.limit:= t^.limit - ( sumMin - temp^.MinVes );
           temp:= temp^.right; 
         END;
     END;
-    IF (t^.TypeUzel = 'or')
+    IF (t^.N_Type = 'or')
     THEN
     BEGIN
       temp:= t^.left;
@@ -104,46 +104,47 @@ BEGIN
     BEGIN 
       temp := t^.left;
       REPEAT
-        IF temp^.limit >= temp^.WeightUzelMin
+        IF temp^.limit >= temp^.MinVes
         THEN
-          temp^.Zapret:= FALSE
+          temp^.Flag2:= FALSE
         ELSE
-          temp^.Zapret:= TRUE;
+          temp^.Flag2:= TRUE;
         temp := temp^.right;
       UNTIL temp = nil;
     END;
-      truncationTree(t^.left);
-      truncationTree(t^.right);
+      multiplications(t^.left);
+      multiplications(t^.right);
     END; 
 END;
+
 PROCEDURE ReadInputFile();
 VAR i:INTEGER;
 BEGIN
-  WHILE NOT Eof(Fin) 
+  WHILE NOT Eof(input_file) 
   DO
   BEGIN
-    READLN(Fin, S);
+    READLN(input_file, S);
     k:= 0;
     NEW(kon);
     Len:= LENGTH(S);
     BEGIN
-      PosSpace:= POS(' ', S);
-      STypeUzel:= S;
-      DELETE(S, PosSpace, Len-PosSpace+1);
-      DELETE(STypeUzel, 1, PosSpace);
-      IF ((STypeUzel = 'and') OR (STypeUzel = 'or'))
+      Value:= POS(' ', S);
+      NodeType:= S;
+      DELETE(S, Value, Len-Value+1);
+      DELETE(NodeType, 1, Value);
+      IF ((NodeType = 'and') OR (NodeType = 'or'))
       THEN
       BEGIN
-        kon^.TypeUzel:= STypeUzel;
-        kon^.WeightUzelMin:= 0;
-        kon^.WeightUzelMax:= 0;
+        kon^.N_Type:= NodeType;
+        kon^.MinVes:= 0;
+        kon^.MaxVes:= 0;
       END
       ELSE
       BEGIN
-        kon^.TypeUzel:= 'leaf';
-        Val(STypeUzel, LeafWeight, err);
-        kon^.WeightUzelMin:= LeafWeight;
-        kon^.WeightUzelMax:= LeafWeight;
+        kon^.N_Type:= 'leaf';
+        Val(NodeType, VesV, Ending);
+        kon^.MinVes:= VesV;
+        kon^.MaxVes:= VesV;
       END;
     END;    
     WHILE S[k + 1]= '.' 
@@ -166,8 +167,8 @@ BEGIN
     IF (k = m) 
     THEN
     BEGIN
-      t^.right:=kon;
-      kon^.fath:=t^.fath; 
+      t^.right:= kon;
+      kon^.fath:= t^.fath; 
       t^.Flag:= FALSE;     
       kon^.Flag:= TRUE;   
     END
@@ -188,7 +189,8 @@ BEGIN
     t:= kon;    
   END;          
 END;
-PROCEDURE PechPr(t:ukaz);  
+
+PROCEDURE OutputVes(t:Pointer);  
 Var
   j: integer;
   St, str1: string;  
@@ -196,21 +198,21 @@ BEGIN
   IF NOT (t = nil)
   THEN
   BEGIN
-    IF NOT t^.Zapret
+    IF NOT t^.Flag2
     THEN
     BEGIN
       St:=t^.name;
-      IF (t^.TypeUzel = 'leaf')
+      IF (t^.N_Type = 'leaf')
         THEN
         BEGIN
-          Str(t^.WeightUzelMin, str1);
+          Str(t^.MinVes, str1);
           St:= St+' - '+str1;
         END  
         ELSE
         BEGIN
-          Str(t^.WeightUzelMin, str1);
-          St:= St + ' - ' + t^.TypeUzel + '( '+ str1 + ','; //вывод соотношения
-          Str(t^.WeightUzelMax, str1);
+          Str(t^.MinVes, str1);
+          St:= St + ' - ' + t^.N_Type + '( '+ str1 + ','; //вывод соотношения
+          Str(t^.MaxVes, str1);
           St:= St + str1 + ') ';
         END;  
       p:=t;
@@ -221,73 +223,73 @@ BEGIN
         THEN
           St:='.' + St;  
       END;
-     WRITELN(Fout, St);
+     WRITELN(output_file, St);
      WRITELN(St);
      END;
-    IF NOT(t^.Zapret)
+    IF NOT(t^.Flag2)
     THEN          
-      PechPr(t^.left);
-      PechPr(t^.right);
+      OutputVes(t^.left);
+      OutputVes(t^.right);
   END
 END;  
 
 BEGIN
     WRITE('Введите имя входного файла:');
-    READLN(NameInputFile);
-    IF NOT FileExists(NameInputFile) 
+    READLN(S);
+    IF NOT FileExists(S) 
     THEN 
       WRITELN('Такого файла не существует')
     ELSE
       BEGIN
+        ASSIGN(input_file, S);
         WRITE('Введите имя выходного файла:');
-        READLN(NameOutFile);
-        ASSIGN(Fin, NameInputFile);  
-        ASSIGN(Fout, NameOutFile);
-        RESET(Fin);
-        NEW(root);
-        READLN(Fin, S);
+        READLN(S);  
+        ASSIGN(output_file, S);
+        RESET(input_file);
+        NEW(key);
+        READLN(input_file, S);
         Len:= LENGTH(S);
-        PosSpace:= POS(' ', S);
-        STypeUzel:= S;
-        DELETE(S, PosSpace, Len - PosSpace + 1);
-        DELETE(STypeUzel, 1, PosSpace);
-        IF (STypeUzel = 'and') OR (STypeUzel = 'or')
+        Value:= POS(' ', S);
+        NodeType:= S;
+        DELETE(S, Value, Len - Value + 1);
+        DELETE(NodeType, 1, Value);
+        IF (NodeType = 'and') OR (NodeType = 'or')
         THEN
         BEGIN
-          root^.TypeUzel := STypeUzel;
-          root^.WeightUzelMin:= 0;
-          root^.WeightUzelMax:= 0;
+          key^.N_Type := NodeType;
+          key^.MinVes:= 0;
+          key^.MaxVes:= 0;
         END
         ELSE
         BEGIN
-          root^.TypeUzel:= 'leaf';
-          Val(STypeUzel, LeafWeight, err);
-          root^.WeightUzelMin:= LeafWeight;
-          root^.WeightUzelMax:= LeafWeight;
+          key^.N_Type:= 'leaf';
+          Val(NodeType, VesV, Ending);
+          key^.MinVes:= VesV;
+          key^.MaxVes:= VesV;
         END;
       END;
-  root^.name:= S;
-  root^.urov:= 0;
-  root^.Flag:= TRUE; 
-  root^.fath:= nil; 
-  m:= 0;             
-  t:= root;          
+    key^.name:= S;
+    key^.urov:= 0;
+    key^.Flag:= TRUE; 
+    key^.fath:= nil; 
+    m:= 0;             
+    t:= key;          
     ReadInputFile;
-    CLOSE(Fin);
-    REWRITE(Fout);
-    calcWeightVertex(root);
-    PechPr(root);
+    CLOSE(input_file);
+    REWRITE(output_file);
+    Vershin(key);
+    OutputVes(key);
     WRITELN('Введите вес');
     READLN(Limiter);
-    IF ((Limiter < root^.WeightUzelMin) or (Limiter > root^.WeightUzelMax))
+    IF ((Limiter < key^.MinVes) or (Limiter > key^.MaxVes))
     THEN
-      WRITELN('Вес превышает допустимое значение')
+      WRITELN('Вес не соответствует допустимым значениям')
     ELSE
     BEGIN
-      root^.limit:= Limiter;
-      truncationTree(root);
+      key^.limit:= Limiter;
+      multiplications(key);
       writeln('РЕЗУЛЬТАТ:');
-      PechPr(root); 
+      OutputVes(key); 
     END;  
-    CLOSE(Fout);
+    CLOSE(output_file);
 END.
